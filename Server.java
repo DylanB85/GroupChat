@@ -1,9 +1,11 @@
 
 import java.io.*;
-import java.net.*;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.net.SocketException;
 
 public class Server {
-	private ServerSocket serverSocket = null;
+	private ServerSocket severSocket = null;
 	private Socket socket = null;
 	private InputStream inStream = null;
 	private OutputStream outStream = null;
@@ -18,41 +20,41 @@ public class Server {
 			while (true) {
 				socket = serverSocket.accept();
 				inStream = socket.getInputStream();
-				System.out.println("Connected\n");
-				createThreadThread();
+				outStream = socket.getOutputStream();
+				System.out.println("Connected");
+				createReadThread();
 				createWriteThread();
+
 			}
 		} catch (IOException io) {
 			io.printStackTrace();
 		}
 	}
 
-	public void createThreadThread()
-	{
-		Thread readThread = new Thread()
-		{
-			public void run()
-			{
-				while (socket.isConnected())
-				{
+	public void createReadThread() {
+		Thread readThread = new Thread() {
+			public void run() {
+				while (socket.isConnected()) {
 					try {
 						byte[] readBuffer = new byte[200];
 						int num = inStream.read(readBuffer);
-						
-						if (num > 0)
-						{
+						if (num > 0) {
 							byte[] arrayBytes = new byte[num];
 							System.arraycopy(readBuffer, 0, arrayBytes, 0, num);
 							String recvedMessage = new String(arrayBytes, "UTF-8");
-							System.out.println("Received message :" +  recvedMessage);
+							System.out.println("Received message :" + recvedMessage);
 						} else {
 							notify();
-						}
+						};
+						// System.arraycopy();
+
 					} catch (SocketException se) {
 						System.exit(0);
+
 					} catch (IOException i) {
 						i.printStackTrace();
 					}
+
 				}
 			}
 		};
@@ -60,26 +62,22 @@ public class Server {
 		readThread.start();
 	}
 
-	public void createWriteThread()
-	{
-		Thread writeThread = new Thread()
-		{
-			public void run()
-			{
+	public void createWriteThread() {
+		Thread writeThread = new Thread() {
+			public void run() {
 
-				while (socket.isConnected())
-				{
+				while (socket.isConnected()) {
 					try {
 						BufferedReader inputReader = new BufferedReader(new InputStreamReader(System.in));
 						sleep(100);
 						String typedMessage = inputReader.readLine();
-						if (typedMessage != null && typedMessage.length() > 0)
-						{
+						if (typedMessage != null && typedMessage.length() > 0) {
 							synchronized (socket) {
 								outStream.write(typedMessage.getBytes("UTF-8"));
 								sleep(100);
 							}
-						}
+						};
+
 					} catch (IOException i) {
 						i.printStackTrace();
 					} catch (InterruptedException ie) {
@@ -94,9 +92,9 @@ public class Server {
 
 	}
 
-	public static void main(String[] args) 
-	{
+	public static void main(String[] args) {
 		Server chatServer = new Server();
 		chatServer.createSocket();
+
 	}
 }
