@@ -4,16 +4,16 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 
 public class Client {
-	private Socket chatSocket = null;
+	private Socket socket = null;
 	private InputStream input = null;
 	private OutputStream output = null;
-	
+
 	public void chatApp(){
 		try{
-			chatSocket = new Socket("LocalHost", 6066);
+			socket = new Socket("LocalHost", 6066);
 			System.out.println("You are now connected to the chat");
-			input = chatSocket.getInputStream();
-			output = chatSocket.getOutputStream();
+			input = socket.getInputStream();
+			output = socket.getOutputStream();
 			reader();
 			writer();
 		} catch (UnknownHostException h){
@@ -22,15 +22,15 @@ public class Client {
 			io.printStackTrace();
 		}
 	}
-	
+
 	public void reader(){
 		Thread reads = new Thread(){
 			public void run(){
-				while(chatSocket.isConnected()){
+				while(socket.isConnected()){
 					try{
 						byte[] readBuffer = new byte[200];
 						int number = input.read(readBuffer);
-						
+
 						if(number > 0){
 							byte[] arrayByte = new byte[number];
 							System.arraycopy(readBuffer, 0, arrayByte, 0, number);
@@ -52,17 +52,17 @@ public class Client {
 		reads.setPriority(Thread.MAX_PRIORITY);
 		reads.start();
 	}
-	
+
 	public void writer(){
 		Thread write = new Thread(){
 			public void run(){
-				while(chatSocket.isConnected()){
+				while(socket.isConnected()){
 					try{
 						BufferedReader inputReader = new BufferedReader(new InputStreamReader(System.in));
 						sleep(100);
 						String typedMessages = inputReader.readLine();
 						if(typedMessages != null && typedMessages.length()>0){
-							synchronized(chatSocket){
+							synchronized(socket){
 								output.write(typedMessages.getBytes("UTF-8"));
 								sleep(100);
 							}
@@ -78,7 +78,7 @@ public class Client {
 		write.setPriority(Thread.MAX_PRIORITY);
 		write.start();
 	}
-	
+
 	public static void main(String[]args) throws Exception{
 		Client chatClient = new Client();
 		chatClient.chatApp();
