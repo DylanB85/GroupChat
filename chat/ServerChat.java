@@ -1,4 +1,3 @@
-package chat;
 
 import java.io.DataInputStream;
 import java.io.PrintStream;
@@ -6,61 +5,43 @@ import java.io.IOException;
 import java.net.Socket;
 import java.net.ServerSocket;
 
-/*
- * A chat server that delivers public and private messages.
- */
 public class ServerChat {
 
-	// The server socket.
-	private static ServerSocket serverSocket = null;
-	// The client socket.
-	private static Socket clientSocket = null;
+	static ServerSocket serverSocket = null; //server socket
+	static Socket socket = null; //client socket
 
-	// This chat server can accept up to maxClientsCount clients' connections.
-	private static final int maxClientsCount = 10;
-	private static final clientThread[] threads = new clientThread[maxClientsCount];
+	// server can only accept 'maxClientCount'  (5)
+	static int maxClient = 5;
+	static final clientThread[] threads = new clientThread[maxClient];
 
 	public static void main(String args[]) {
 
-		// The default port number.
 		int portNumber = 6067;
 		if (args.length < 1) {
-			System.out.println(
-					"Usage: java MultiThreadChatServer <portNumber>\n" + "Now using port number=" + portNumber);
-		} else {
-			portNumber = Integer.valueOf(args[0]).intValue();
+			System.out.println("Now using port number=" + portNumber);
 		}
 
-		/*
-		 * Open a server socket on the portNumber (default 2222). Note that we
-		 * can not choose a port less than 1023 if we are not privileged users
-		 * (root).
-		 */
 		try {
 			serverSocket = new ServerSocket(portNumber);
 		} catch (IOException e) {
 			System.out.println(e);
 		}
 
-		/*
-		 * Create a client socket for each connection and pass it to a new
-		 * client thread.
-		 */
 		while (true) {
 			try {
-				clientSocket = serverSocket.accept();
+				socket = serverSocket.accept();
 				int i = 0;
-				for (i = 0; i < maxClientsCount; i++) {
+				for (i = 0; i < maxClient; i++) {
 					if (threads[i] == null) {
-						(threads[i] = new clientThread(clientSocket, threads)).start();
+						(threads[i] = new clientThread(socket, threads)).start();
 						break;
 					}
 				}
-				if (i == maxClientsCount) {
-					PrintStream os = new PrintStream(clientSocket.getOutputStream());
+				if (i == maxClient) {
+					PrintStream os = new PrintStream(socket.getOutputStream());
 					os.println("Server too busy. Try later.");
 					os.close();
-					clientSocket.close();
+					socket.close();
 				}
 			} catch (IOException e) {
 				System.out.println(e);
@@ -69,81 +50,55 @@ public class ServerChat {
 	}
 }
 
-/*
- * The chat client thread. This client thread opens the input and the output
- * streams for a particular client, ask the client's name, informs all the
- * clients connected to the server about the fact that a new client has joined
- * the chat room, and as long as it receive data, echos that data back to all
- * other clients. When a client leaves the chat room this thread informs also
- * all the clients about that and terminates.
- */
 class clientThread extends Thread {
 
-	private DataInputStream is = null;
-	private PrintStream os = null;
-	private Socket clientSocket = null;
-	private final clientThread[] threads;
-	private int maxClientsCount;
+	DataInputStream input = null;
+	PrintStream print = null;
+	Socket socket = null;
+	final clientThread[] threads;
+	int maxClient;
 
-	public clientThread(Socket clientSocket, clientThread[] threads) {
-		this.clientSocket = clientSocket;
+	public clientThread(Socket socket, clientThread[] threads) {
+		this.socket = socket;
 		this.threads = threads;
-		maxClientsCount = threads.length;
+		maxClient = threads.length;
 	}
 
 	public void run() {
-		int maxClientsCount = this.maxClientsCount;
+		int maxClient = this.maxClient;
 		clientThread[] threads = this.threads;
 
 		try {
-			/*
-			 * Create input and output streams for this client.
-			 */
-			is = new DataInputStream(clientSocket.getInputStream());
-			os = new PrintStream(clientSocket.getOutputStream());
-			os.println("Enter your name.");
-			String name = is.readLine().trim();
-			os.println("Hello " + name + " to our chat room.\nTo leave enter /quit in a new line");
-			for (int i = 0; i < maxClientsCount; i++) {
+			input = new DataInputStream(socket.getInputStream());
+			print = new PrintStream(socket.getOutputStream());
+			print.println("Enter your name.");
+			String name = input.readLine();
+
+			for (int i = 0; i < maxClient; i++) {
 				if (threads[i] != null && threads[i] != this) {
-					threads[i].os.println("*** A new user " + name + " entered the chat room !!! ***");
+					threads[i].print.println("*** A new user entered the chat room ***");
 				}
 			}
 			while (true) {
-				String line = is.readLine();
-				if (line.startsWith("/quit")) {
+				String line = input.readLine();
+				if (line.startsWith("/leave")) {
 					break;
 				}
-				for (int i = 0; i < maxClientsCount; i++) {
+				for (int i = 0; i < maxClient; i++) {
 					if (threads[i] != null) {
-						threads[i].os.println("<" + name + "&gr; " + line);
+						threads[i].print.println(name + ": " + line);
 					}
 				}
 			}
-			for (int i = 0; i < maxClientsCount; i++) {
+			for (int i = 0; i < maxClient; i++) {
 				if (threads[i] != null && threads[i] != this) {
-					threads[i].os.println("*** The user " + name + " is leaving the chat room !!! ***");
-				}
-			}
-			os.println("*** Bye " + name + " ***");
-
-			/*
-			 * Clean up. Set the current thread variable to null so that a new
-			 * client could be accepted by the server.
-			 */
-			for (int i = 0; i < maxClientsCount; i++) {
-				if (threads[i] == this) {
-					threads[i] = null;
+					threads[i].print.println("*** A user has left the chat room ***");
 				}
 			}
 
-			/*
-			 * Close the output stream, close the input stream, close the
-			 * socket.
-			 */
-			is.close();
-			os.close();
-			clientSocket.close();
+			//is.close();
+			//os.close();
+			socket.close();
 		} catch (IOException e) {
 		}
 	}
