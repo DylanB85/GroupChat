@@ -76,7 +76,7 @@ class clientThread extends Thread {
 
 			for (int i = 0; i < maxClient; i++) {
 				if (threads[i] != null && threads[i] != this) {
-					threads[i].print.println("*** A new user entered the chat room ***");
+					threads[i].print.println("- A new user entered the chat room -");
 				}
 			}
 			while (true) {
@@ -92,12 +92,10 @@ class clientThread extends Thread {
 			}
 			for (int i = 0; i < maxClient; i++) {
 				if (threads[i] != null && threads[i] != this) {
-					threads[i].print.println("*** A user has left the chat room ***");
+					threads[i].print.println("- A user has left the chat room -");
 				}
 			}
 
-			//is.close();
-			//os.close();
 			socket.close();
 		} catch (IOException e) {
 		}
